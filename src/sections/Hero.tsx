@@ -86,12 +86,31 @@ export function Hero() {
     >
       <AnimatedGrid className="opacity-70" />
 
-      {/* WebGL sculpture — bleeds off the right, sits behind the headline. */}
+      {/* Floating WebGL sculpture — soft-masked so it never shows a hard box. */}
       <div
         ref={sceneRef}
-        className="pointer-events-none absolute right-[-18%] top-1/2 z-0 h-[85vw] w-[85vw] max-h-[820px] max-w-[820px] -translate-y-1/2 md:right-[-6%] lg:right-[2%]"
+        className="pointer-events-none absolute inset-y-0 right-0 z-0 flex w-full items-center justify-center md:right-[-2%] md:w-[58%] lg:right-[1%] lg:w-[52%]"
       >
-        <HeroScene />
+        <div className="relative aspect-square h-[74%] max-h-[680px] md:h-[86%]">
+          {/* warm ambient glow behind the object */}
+          <div className="absolute inset-[8%] rounded-full bg-[radial-gradient(circle_at_50%_42%,rgba(201,154,125,0.42),rgba(180,121,90,0.12)_45%,transparent_72%)] blur-2xl" />
+
+          {/* the sculpture, its canvas edges dissolved with a radial mask */}
+          <div
+            className="absolute inset-0"
+            style={{
+              maskImage:
+                'radial-gradient(closest-side at 50% 46%, #000 58%, transparent 90%)',
+              WebkitMaskImage:
+                'radial-gradient(closest-side at 50% 46%, #000 58%, transparent 90%)',
+            }}
+          >
+            <HeroScene />
+          </div>
+
+          {/* soft contact shadow grounding the object */}
+          <div className="absolute bottom-[10%] left-1/2 h-8 w-[42%] -translate-x-1/2 rounded-[50%] bg-espresso/25 blur-2xl" />
+        </div>
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 md:px-12">

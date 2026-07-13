@@ -1,6 +1,7 @@
 /**
- * GLSL for the hero sculpture. A classic Ashima simplex-noise field displaces
- * an icosphere ("liquid stone"), with a warm fresnel rim in the fragment stage.
+ * GLSL for the hero sculpture. A classic Ashima simplex-noise field gently
+ * displaces an icosphere into a smooth ceramic form, lit in the fragment
+ * stage with a soft key light, bone fresnel rim and a subtle sheen.
  * Noise implementation: Ian McEwan / Ashima Arts (MIT).
  */
 
@@ -61,11 +62,12 @@ export const vertexShader = /* glsl */ `
 
   void main() {
     vNormal = normal;
-    float t = uTime * 0.28;
-    float mouseInfluence = 0.35 * length(uMouse);
+    float t = uTime * 0.18;
+    float mouseInfluence = 0.12 * length(uMouse);
 
-    float noise = snoise(position * 1.15 + vec3(t, t * 0.6, t * 0.4));
-    noise += 0.5 * snoise(position * 2.6 - vec3(t * 0.8));
+    // Low-frequency base swell + a soft second octave = smooth, ceramic form.
+    float noise = snoise(position * 0.85 + vec3(t, t * 0.5, t * 0.3));
+    noise += 0.35 * snoise(position * 1.9 - vec3(t * 0.6));
 
     float displace = noise * (uAmp + mouseInfluence);
     vDisplace = displace;
@@ -79,25 +81,39 @@ export const vertexShader = /* glsl */ `
 `;
 
 export const fragmentShader = /* glsl */ `
-  uniform vec3 uColorA;
-  uniform vec3 uColorB;
-  uniform vec3 uColorC;
+  uniform vec3 uColorA; // deep / shadow side
+  uniform vec3 uColorB; // mid body
+  uniform vec3 uColorC; // bone highlight / rim
+  uniform vec3 uLight;  // key light direction
 
   varying float vDisplace;
   varying vec3 vNormal;
   varying vec3 vViewPosition;
 
   void main() {
-    vec3 viewDir = normalize(vViewPosition);
-    float fresnel = pow(1.0 - abs(dot(viewDir, normalize(vNormal))), 2.4);
+    vec3 N = normalize(vNormal);
+    vec3 V = normalize(vViewPosition);
+    vec3 L = normalize(uLight);
 
-    float d = smoothstep(-0.35, 0.45, vDisplace);
-    vec3 base = mix(uColorA, uColorB, d);
-    vec3 color = mix(base, uColorC, fresnel * 0.9);
+    // Soft wrapped diffuse for a matte ceramic read.
+    float diff = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);
+    diff = pow(diff, 1.35);
 
-    // gentle top-down key light
-    float key = clamp(dot(normalize(vNormal), vec3(0.3, 0.9, 0.3)), 0.0, 1.0);
-    color += key * 0.06;
+    float fresnel = pow(1.0 - abs(dot(V, N)), 3.0);
+
+    float d = smoothstep(-0.28, 0.4, vDisplace);
+    vec3 body = mix(uColorA, uColorB, d);
+
+    vec3 color = body * (0.5 + 0.62 * diff);
+
+    // Bone fresnel rim + faint rose iridescence at grazing angles.
+    vec3 rim = mix(uColorC, vec3(0.98, 0.86, 0.82), 0.4);
+    color = mix(color, rim, fresnel * 0.9);
+
+    // Gentle specular sheen.
+    vec3 H = normalize(L + V);
+    float spec = pow(clamp(dot(N, H), 0.0, 1.0), 26.0);
+    color += spec * 0.22 * uColorC;
 
     gl_FragColor = vec4(color, 1.0);
   }

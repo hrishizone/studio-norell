@@ -6,8 +6,9 @@ import { FloatingObject } from './FloatingObject';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 
 /**
- * WebGL canvas hosting the hero sculpture. DPR is capped for performance and
- * the object is skipped entirely under reduced-motion preferences.
+ * WebGL canvas hosting the hero sculpture. The camera is pulled back so the
+ * object floats with air around it (never clipping the canvas edges). DPR is
+ * capped for performance and animation is paused under reduced-motion.
  */
 export function HeroScene() {
   const reduced = usePrefersReducedMotion();
@@ -15,14 +16,12 @@ export function HeroScene() {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0, 0, 4.2], fov: 42 }}
+      camera={{ position: [0, 0, 5.4], fov: 38 }}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       className="!absolute inset-0"
       aria-hidden
       frameloop={reduced ? 'demand' : 'always'}
     >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 4, 2]} intensity={0.6} />
       <Suspense fallback={null}>
         <FloatingObject />
       </Suspense>
