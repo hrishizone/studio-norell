@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bone: #f4f1ea;
+  --espresso: #1a1613;
+  --clay: #b4795a;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: auto; /* Lenis handles smoothing */
+    background-color: var(--bone);
+  }
+
+  body {
+    background-color: var(--bone);
+    color: var(--espresso);
+    font-feature-settings: 'ss01', 'cv01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: var(--clay);
+    color: var(--bone);
+  }
+
+  /* Hide native cursor where the bespoke cursor is active. */
+  @media (pointer: fine) and (min-width: 768px) {
+    body,
+    a,
+    button {
+      cursor: none;
+    }
+  }
+
+  /* Thin, warm scrollbar. */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bone);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(26, 22, 19, 0.18);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(26, 22, 19, 0.32);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    background: rgba(244, 241, 234, 0.08);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(244, 241, 234, 0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
