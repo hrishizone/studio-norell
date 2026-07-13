@@ -75,9 +75,13 @@ in `next.config.mjs`).
 
 ## ✦ Credits
 
-- Hero 3D model: **SheenChair** from the
+- Hero is an interactive **living-room vignette**. Furniture models —
+  **SheenChair**, **GlamVelvetSofa**, **IridescentDishWithOlives** — are from the
   [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets)
-  (CC0 / public domain), vendored at `public/models/chair.glb`.
+  (CC0 / public domain), vendored under `public/models/`. The room shell, coffee
+  table, floor lamp, plant, art and dust are procedural.
+- Drag to orbit the room; tap a piece to open its spec card. The camera idles
+  with a gentle sway and the lamp quietly breathes.
 - Studio lighting uses three.js `RoomEnvironment` (no HDRI asset shipped).
 - Imagery from Unsplash via `next/image`.
 

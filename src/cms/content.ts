@@ -1,6 +1,7 @@
 import type {
   BrandConfig,
   Collection,
+  HeroHotspot,
   ManifestoLine,
   MarqueeItem,
   NavLink,
@@ -96,3 +97,42 @@ export const manifestoLines: ManifestoLine[] = [
 ];
 
 export const heroWords = ['Furniture', 'as', 'quiet', 'architecture'];
+
+/**
+ * Inspection points anchored to the hero chair (local-space coordinates within
+ * the scaled chair group). Reveal spec cards when explored.
+ */
+export const heroHotspots: HeroHotspot[] = [
+  {
+    id: 'sofa',
+    index: '01',
+    position: [0.1, 0.85, -1.35],
+    title: 'Sölden Sofa',
+    detail: 'A low, deep three-seater in sheened velvet over a solid ash frame.',
+    spec: 'VELVET · WALNUT · 2024',
+  },
+  {
+    id: 'chair',
+    index: '02',
+    position: [1.8, 0.8, -0.45],
+    title: 'Vellÿ Lounge',
+    detail: 'Our signature bouclé lounge chair — hand-finished, made to order.',
+    spec: 'WOOL BOUCLÉ · OAK',
+  },
+  {
+    id: 'table',
+    index: '03',
+    position: [0.0, 0.55, -0.3],
+    title: 'Måre Table',
+    detail: 'A monolithic travertine top on slender darkened-brass legs.',
+    spec: 'TRAVERTINE · BRASS',
+  },
+  {
+    id: 'lamp',
+    index: '04',
+    position: [-2.3, 1.75, -1.5],
+    title: 'Norr Light',
+    detail: 'A warm, dimmable reading lamp in patinated brass and linen.',
+    spec: 'BRASS · LINEN · 2700K',
+  },
+];

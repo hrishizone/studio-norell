@@ -41,6 +41,15 @@ export interface BrandConfig {
   description: string;
 }
 
+export interface HeroHotspot {
+  id: string;
+  index: string;
+  position: [number, number, number];
+  title: string;
+  detail: string;
+  spec: string;
+}
+
 export interface SectionProps {
   id?: string;
   className?: string;

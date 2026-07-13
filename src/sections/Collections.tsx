@@ -5,6 +5,7 @@ import { FiArrowUpRight } from 'react-icons/fi';
 import { gsap, registerGsap, ScrollTrigger } from '@/animations/gsap';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { useTilt } from '@/hooks/useTilt';
 import { collections } from '@/cms/content';
 import { ImageReveal } from '@/components/shared/ImageReveal';
 import { RevealText } from '@/components/shared/RevealText';
@@ -12,12 +13,18 @@ import { useCursorHandlers } from '@/providers/CursorProvider';
 
 function CollectionCard({ item }: { item: (typeof collections)[number] }) {
   const cursor = useCursorHandlers('view', 'View');
+  const tilt = useTilt<HTMLDivElement>(7);
   return (
     <article
       {...cursor}
       className="group relative flex h-full w-[78vw] shrink-0 flex-col sm:w-[52vw] lg:w-[34vw] xl:w-[30vw]"
     >
-      <div className="relative overflow-hidden rounded-2xl">
+      <div
+        ref={tilt.ref}
+        onPointerMove={tilt.onPointerMove}
+        onPointerLeave={tilt.onPointerLeave}
+        className="relative overflow-hidden rounded-2xl [transform-style:preserve-3d] will-change-transform"
+      >
         <ImageReveal
           src={item.image}
           alt={item.alt}
@@ -33,6 +40,15 @@ function CollectionCard({ item }: { item: (typeof collections)[number] }) {
         <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-espresso text-bone opacity-0 transition-all duration-500 ease-norell group-hover:opacity-100">
           <FiArrowUpRight className="h-4 w-4" />
         </span>
+
+        {/* Spec bar — slides up on hover */}
+        <div className="absolute inset-x-3 bottom-3 translate-y-[calc(100%+0.75rem)] rounded-xl border border-bone/15 bg-[#100d0b]/70 p-4 backdrop-blur-xl transition-transform duration-500 ease-norell group-hover:translate-y-0">
+          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-clay">
+            <span>Detail Nº {item.index}</span>
+            <span className="text-bone/50">{item.year}</span>
+          </div>
+          <p className="mt-2 text-sm text-bone/80">{item.material}</p>
+        </div>
       </div>
       <div className="mt-5 flex items-baseline justify-between">
         <h3 className="font-display text-2xl font-light text-espresso">{item.name}</h3>

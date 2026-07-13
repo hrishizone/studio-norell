@@ -9,6 +9,7 @@ import { brand } from '@/cms/content';
 import { MagneticButton } from '@/components/shared/MagneticButton';
 import { ScrollIndicator } from '@/components/shared/ScrollIndicator';
 import { AxisGizmo } from '@/components/shared/AxisGizmo';
+import { OrbitReadout } from '@/components/shared/OrbitReadout';
 import { useCursorHandlers } from '@/providers/CursorProvider';
 
 // WebGL is client-only; skip SSR to avoid hydration + window access issues.
@@ -26,7 +27,7 @@ export function Hero() {
   const rootRef = useRef<HTMLElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
-  const viewCursor = useCursorHandlers('view', 'Orbit');
+  const dragCursor = useCursorHandlers('drag', 'Drag');
 
   useIsomorphicLayoutEffect(() => {
     registerGsap();
@@ -93,10 +94,10 @@ export function Hero() {
       ref={rootRef}
       className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#0b0a09] text-bone"
     >
-      {/* WebGL studio: infinite grid + reflective monolith */}
+      {/* WebGL studio: infinite grid + interactive chair (drag to orbit) */}
       <div
         ref={sceneRef}
-        {...viewCursor}
+        {...dragCursor}
         className="absolute inset-0 z-0"
       >
         <HeroScene />
@@ -133,8 +134,9 @@ export function Hero() {
         ))}
       </div>
 
-      {/* Content */}
-      <div className="relative z-[4] mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 pb-8 pt-28 md:px-12 md:pb-12 md:pt-32">
+      {/* Content — transparent to pointer so the canvas underneath can be dragged;
+          interactive children opt back in with pointer-events-auto. */}
+      <div className="pointer-events-none relative z-[4] mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 pb-8 pt-28 md:px-12 md:pb-12 md:pt-32">
         {/* Top HUD row */}
         <div
           data-hero-fade
@@ -171,7 +173,10 @@ export function Hero() {
               </span>
             </h1>
 
-            <div data-hero-fade className="mt-8 flex flex-wrap items-center gap-4">
+            <div
+              data-hero-fade
+              className="pointer-events-auto mt-8 flex flex-wrap items-center gap-4"
+            >
               <MagneticButton href="#collections" variant="light">
                 Explore collections
                 <FiArrowDownRight className="h-4 w-4" />
@@ -180,6 +185,14 @@ export function Hero() {
                 The atelier
               </MagneticButton>
             </div>
+
+            <p
+              data-hero-fade
+              className="mt-6 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-bone/40"
+            >
+              <span className="inline-block h-1 w-1 animate-ping rounded-full bg-clay" />
+              Drag to explore the room · tap a piece to inspect
+            </p>
           </div>
 
           <div className="flex flex-col gap-6 md:items-end">
@@ -191,9 +204,7 @@ export function Hero() {
               finished by hand.
             </p>
             <div data-hero-fade className="flex items-center gap-4">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-bone/40">
-                Model · Vellÿ 01
-              </span>
+              <OrbitReadout />
               <AxisGizmo className="h-12 w-12" />
             </div>
           </div>
