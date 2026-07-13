@@ -73,6 +73,14 @@ src/
 Imagery is loaded from Unsplash via `next/image` (allowed hosts are configured
 in `next.config.mjs`).
 
+## ✦ Credits
+
+- Hero 3D model: **SheenChair** from the
+  [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets)
+  (CC0 / public domain), vendored at `public/models/chair.glb`.
+- Studio lighting uses three.js `RoomEnvironment` (no HDRI asset shipped).
+- Imagery from Unsplash via `next/image`.
+
 ---
 
-_All brand identity, copy and imagery here are fictional and for demonstration._
+_All brand identity and copy here are fictional and for demonstration._
