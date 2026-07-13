@@ -4,7 +4,7 @@ An Awwwards-grade hero experience for a fictional collectible-furniture brand,
 **Studio Noréll** — _"Quietly monumental."_ Editorial, architectural and warm,
 built as a production-ready Next.js 15 application.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/REPLACE_WITH_YOUR_REPO)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/hrishizone/studio-norell)
 
 ---
 
