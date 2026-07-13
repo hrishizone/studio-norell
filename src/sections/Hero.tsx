@@ -5,11 +5,10 @@ import { useRef } from 'react';
 import { FiArrowDownRight } from 'react-icons/fi';
 import { gsap, registerGsap, ScrollTrigger } from '@/animations/gsap';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { brand, collections, heroStats } from '@/cms/content';
-import { AnimatedGrid } from '@/components/shared/AnimatedGrid';
-import { ImageReveal } from '@/components/shared/ImageReveal';
+import { brand } from '@/cms/content';
 import { MagneticButton } from '@/components/shared/MagneticButton';
 import { ScrollIndicator } from '@/components/shared/ScrollIndicator';
+import { AxisGizmo } from '@/components/shared/AxisGizmo';
 import { useCursorHandlers } from '@/providers/CursorProvider';
 
 // WebGL is client-only; skip SSR to avoid hydration + window access issues.
@@ -21,10 +20,13 @@ const HeroScene = dynamic(
 // Entrance begins as the loader curtain lifts (~2s in).
 const HERO_DELAY = 2.05;
 
+const LEFT_TICKS = ['000', '025', '050', '075', '100'];
+
 export function Hero() {
   const rootRef = useRef<HTMLElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
-  const viewCursor = useCursorHandlers('view', 'View');
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const viewCursor = useCursorHandlers('view', 'Orbit');
 
   useIsomorphicLayoutEffect(() => {
     registerGsap();
@@ -38,36 +40,43 @@ export function Hero() {
       const fades = gsap.utils.toArray<HTMLElement>('[data-hero-fade]');
 
       if (prefersReduced) {
-        gsap.set([lines, fades], { clearProps: 'all', opacity: 1, yPercent: 0 });
+        gsap.set([lines, fades, ghostRef.current], { opacity: 1, yPercent: 0 });
       } else {
         gsap.set(lines, { yPercent: 115 });
-        gsap.set(fades, { y: 24, opacity: 0 });
+        gsap.set(fades, { y: 18, opacity: 0 });
+        gsap.set(ghostRef.current, { opacity: 0, scale: 1.08, filter: 'blur(12px)' });
 
         const tl = gsap.timeline({ delay: HERO_DELAY });
-        tl.to(lines, {
-          yPercent: 0,
-          duration: 1.3,
-          ease: 'power4.out',
-          stagger: 0.12,
+        tl.to(ghostRef.current, {
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          duration: 1.6,
+          ease: 'power3.out',
         })
           .to(
+            lines,
+            { yPercent: 0, duration: 1.2, ease: 'power4.out', stagger: 0.12 },
+            '-=1.2',
+          )
+          .to(
             fades,
-            { y: 0, opacity: 1, duration: 1, ease: 'power3.out', stagger: 0.1 },
-            '-=0.8',
+            { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.06 },
+            '-=0.9',
           );
       }
 
-      // Scene parallax + fade on scroll out.
-      if (sceneRef.current && !prefersReduced) {
+      if (!prefersReduced) {
+        // Scene + ghost type parallax as the hero scrolls away.
         gsap.to(sceneRef.current, {
-          yPercent: 18,
+          yPercent: 14,
           ease: 'none',
-          scrollTrigger: {
-            trigger: root,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: true,
-          },
+          scrollTrigger: { trigger: root, start: 'top top', end: 'bottom top', scrub: true },
+        });
+        gsap.to(ghostRef.current, {
+          yPercent: -12,
+          ease: 'none',
+          scrollTrigger: { trigger: root, start: 'top top', end: 'bottom top', scrub: true },
         });
       }
     }, root);
@@ -82,124 +91,120 @@ export function Hero() {
     <section
       id="top"
       ref={rootRef}
-      className="relative flex min-h-[100svh] flex-col overflow-hidden pb-10 pt-28 md:pb-14 md:pt-32"
+      className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#0b0a09] text-bone"
     >
-      <AnimatedGrid className="opacity-70" />
-
-      {/* Floating WebGL sculpture — soft-masked so it never shows a hard box. */}
+      {/* WebGL studio: infinite grid + reflective monolith */}
       <div
         ref={sceneRef}
-        className="pointer-events-none absolute inset-y-0 right-0 z-0 flex w-full items-center justify-center md:right-[-2%] md:w-[58%] lg:right-[1%] lg:w-[52%]"
+        {...viewCursor}
+        className="absolute inset-0 z-0"
       >
-        <div className="relative aspect-square h-[74%] max-h-[680px] md:h-[86%]">
-          {/* warm ambient glow behind the object */}
-          <div className="absolute inset-[8%] rounded-full bg-[radial-gradient(circle_at_50%_42%,rgba(201,154,125,0.42),rgba(180,121,90,0.12)_45%,transparent_72%)] blur-2xl" />
-
-          {/* the sculpture, its canvas edges dissolved with a radial mask */}
-          <div
-            className="absolute inset-0"
-            style={{
-              maskImage:
-                'radial-gradient(closest-side at 50% 46%, #000 58%, transparent 90%)',
-              WebkitMaskImage:
-                'radial-gradient(closest-side at 50% 46%, #000 58%, transparent 90%)',
-            }}
-          >
-            <HeroScene />
-          </div>
-
-          {/* soft contact shadow grounding the object */}
-          <div className="absolute bottom-[10%] left-1/2 h-8 w-[42%] -translate-x-1/2 rounded-[50%] bg-espresso/25 blur-2xl" />
-        </div>
+        <HeroScene />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 md:px-12">
-        {/* Top meta row */}
+      {/* Giant outline wordmark behind the object */}
+      <div
+        ref={ghostRef}
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center"
+      >
+        <span className="select-none whitespace-nowrap font-display text-[23vw] font-light leading-none text-transparent [-webkit-text-stroke:1px_rgba(244,241,234,0.14)]">
+          monuments
+        </span>
+      </div>
+
+      {/* Radial vignette to focus the centre + darken edges */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(11,10,9,0.75)_100%)]"
+      />
+
+      {/* Left measurement ruler */}
+      <div
+        data-hero-fade
+        aria-hidden
+        className="absolute left-6 top-1/2 z-[3] hidden -translate-y-1/2 flex-col gap-8 font-mono text-[10px] tracking-widest text-bone/35 lg:flex"
+      >
+        {LEFT_TICKS.map((t) => (
+          <span key={t} className="flex items-center gap-2">
+            <span className="inline-block h-px w-4 bg-bone/25" />
+            {t}
+          </span>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="relative z-[4] mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 pb-8 pt-28 md:px-12 md:pb-12 md:pt-32">
+        {/* Top HUD row */}
         <div
           data-hero-fade
-          className="flex items-start justify-between text-xs uppercase tracking-eyebrow text-espresso/60"
+          className="flex items-start justify-between font-mono text-[11px] uppercase tracking-widest text-bone/50"
         >
-          <span>Collectible furniture — Est. {brand.founded}</span>
-          <span className="hidden max-w-[26ch] text-right leading-relaxed md:block">
-            An atelier composing objects for the rooms you will grow old in.
+          <span>
+            [ Nº01 ] Collectible furniture
+            <br className="hidden sm:block" />
+            Est. {brand.founded}
+          </span>
+          <span className="text-right">
+            55.6761° N / 12.5683° E
+            <br className="hidden sm:block" />
+            Oak · Travertine · Wool
           </span>
         </div>
 
-        {/* Headline */}
-        <div className="mt-auto">
-          <h1 className="font-display font-light text-espresso">
-            <span className="block overflow-hidden">
-              <span data-hero-line className="block text-display-xl">
-                Quiet
+        {/* Bottom cluster */}
+        <div className="mt-auto grid gap-10 md:grid-cols-[1.3fr_1fr] md:items-end">
+          <div>
+            <h1 className="font-display font-light">
+              <span className="block overflow-hidden">
+                <span data-hero-line className="block text-[clamp(2.5rem,6vw,5rem)] leading-[0.98]">
+                  Quiet
+                </span>
               </span>
-            </span>
-            <span className="block overflow-hidden">
-              <span data-hero-line className="block text-display-xl italic text-clay">
-                monuments
+              <span className="block overflow-hidden">
+                <span
+                  data-hero-line
+                  className="block text-[clamp(2.5rem,6vw,5rem)] italic leading-[0.98] text-clay-soft"
+                >
+                  monuments.
+                </span>
               </span>
-            </span>
-            <span className="mt-4 block max-w-[20ch] overflow-hidden md:mt-6">
-              <span
-                data-hero-line
-                className="block font-sans text-lg font-normal leading-snug tracking-tight text-espresso/70 md:text-2xl"
-              >
-                for the rooms you will grow old in.
-              </span>
-            </span>
-          </h1>
+            </h1>
 
-          <div data-hero-fade className="mt-10 flex flex-wrap items-center gap-4">
-            <MagneticButton href="#collections" variant="solid">
-              Explore collections
-              <FiArrowDownRight className="h-4 w-4" />
-            </MagneticButton>
-            <MagneticButton href="#atelier" variant="outline">
-              The atelier
-            </MagneticButton>
+            <div data-hero-fade className="mt-8 flex flex-wrap items-center gap-4">
+              <MagneticButton href="#collections" variant="light">
+                Explore collections
+                <FiArrowDownRight className="h-4 w-4" />
+              </MagneticButton>
+              <MagneticButton href="#atelier" variant="outline-light">
+                The atelier
+              </MagneticButton>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6 md:items-end">
+            <p
+              data-hero-fade
+              className="max-w-[34ch] font-mono text-[11px] uppercase leading-relaxed tracking-widest text-bone/50 md:text-right"
+            >
+              Furniture engineered to be inherited — drawn like architecture,
+              finished by hand.
+            </p>
+            <div data-hero-fade className="flex items-center gap-4">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-bone/40">
+                Model · Vellÿ 01
+              </span>
+              <AxisGizmo className="h-12 w-12" />
+            </div>
           </div>
         </div>
 
-        {/* Bottom row: scroll cue · portrait image · stats */}
-        <div className="mt-14 flex items-end justify-between gap-6">
-          <div data-hero-fade>
-            <ScrollIndicator />
-          </div>
-
-          <div
-            data-hero-fade
-            {...viewCursor}
-            className="hidden w-40 shrink-0 lg:block xl:w-52"
-          >
-            <ImageReveal
-              src={collections[0].image}
-              alt={collections[0].alt}
-              className="aspect-[3/4] w-full"
-              sizes="220px"
-              parallax={8}
-              delay={HERO_DELAY + 0.3}
-              priority
-            />
-            <p className="mt-3 flex items-center justify-between text-[11px] uppercase tracking-wide text-espresso/50">
-              <span>{collections[0].name}</span>
-              <span>{collections[0].year}</span>
-            </p>
-          </div>
-
-          <dl
-            data-hero-fade
-            className="flex gap-8 text-right md:gap-12"
-          >
-            {heroStats.map((stat) => (
-              <div key={stat.label}>
-                <dt className="font-display text-3xl font-light text-espresso md:text-4xl">
-                  {stat.value}
-                </dt>
-                <dd className="mt-1 max-w-[12ch] text-[11px] uppercase leading-tight tracking-wide text-espresso/50">
-                  {stat.label}
-                </dd>
-              </div>
-            ))}
-          </dl>
+        {/* Footer line: scroll cue */}
+        <div data-hero-fade className="mt-10 flex items-center justify-between">
+          <ScrollIndicator />
+          <span className="font-mono text-[10px] uppercase tracking-widest text-bone/40">
+            {brand.tagline}
+          </span>
         </div>
       </div>
     </section>

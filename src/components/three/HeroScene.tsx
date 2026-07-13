@@ -3,12 +3,14 @@
 import { Canvas } from '@react-three/fiber';
 import { Suspense } from 'react';
 import { FloatingObject } from './FloatingObject';
+import { GridFloor } from './GridFloor';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 
+const BG = '#0b0a09';
+
 /**
- * WebGL canvas hosting the hero sculpture. The camera is pulled back so the
- * object floats with air around it (never clipping the canvas edges). DPR is
- * capped for performance and animation is paused under reduced-motion.
+ * The dark "studio" scene: an infinite grid floor fading into fog with the
+ * polished monolith floating above it. DPR capped; paused under reduced-motion.
  */
 export function HeroScene() {
   const reduced = usePrefersReducedMotion();
@@ -16,13 +18,16 @@ export function HeroScene() {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0, 0, 5.4], fov: 38 }}
+      camera={{ position: [0, 0.7, 5], fov: 40 }}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       className="!absolute inset-0"
       aria-hidden
       frameloop={reduced ? 'demand' : 'always'}
     >
+      <fog attach="fog" args={[BG, 5.5, 15]} />
+      <ambientLight intensity={0.4} />
       <Suspense fallback={null}>
+        <GridFloor />
         <FloatingObject />
       </Suspense>
     </Canvas>

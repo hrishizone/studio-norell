@@ -1,8 +1,8 @@
 /**
- * GLSL for the hero sculpture. A classic Ashima simplex-noise field gently
- * displaces an icosphere into a smooth ceramic form, lit in the fragment
- * stage with a soft key light, bone fresnel rim and a subtle sheen.
- * Noise implementation: Ian McEwan / Ashima Arts (MIT).
+ * GLSL for the hero sculpture — a polished, reflective monolith read.
+ * A simplex-noise field (Ashima Arts, MIT) gives an organic silhouette while a
+ * fake studio-environment reflection + bone fresnel makes the surface feel like
+ * cast, hand-polished bronze catching gallery light against a dark room.
  */
 
 export const vertexShader = /* glsl */ `
@@ -10,9 +10,9 @@ export const vertexShader = /* glsl */ `
   uniform float uAmp;
   uniform vec2 uMouse;
 
-  varying float vDisplace;
-  varying vec3 vNormal;
+  varying vec3 vNormal;      // view-space, smooth (for reflections)
   varying vec3 vViewPosition;
+  varying float vDisplace;
 
   vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
   vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
@@ -61,18 +61,19 @@ export const vertexShader = /* glsl */ `
   }
 
   void main() {
-    vNormal = normal;
-    float t = uTime * 0.18;
-    float mouseInfluence = 0.12 * length(uMouse);
+    float t = uTime * 0.16;
+    float mouseInfluence = 0.1 * length(uMouse);
 
-    // Low-frequency base swell + a soft second octave = smooth, ceramic form.
-    float noise = snoise(position * 0.85 + vec3(t, t * 0.5, t * 0.3));
-    noise += 0.35 * snoise(position * 1.9 - vec3(t * 0.6));
+    float noise = snoise(position * 0.8 + vec3(t, t * 0.5, t * 0.3));
+    noise += 0.3 * snoise(position * 1.7 - vec3(t * 0.6));
 
     float displace = noise * (uAmp + mouseInfluence);
     vDisplace = displace;
 
     vec3 newPosition = position + normal * displace;
+
+    // Smooth (base) normal in view space → clean, glassy reflections.
+    vNormal = normalize(normalMatrix * normal);
 
     vec4 mvPosition = modelViewMatrix * vec4(newPosition, 1.0);
     vViewPosition = -mvPosition.xyz;
@@ -81,39 +82,45 @@ export const vertexShader = /* glsl */ `
 `;
 
 export const fragmentShader = /* glsl */ `
-  uniform vec3 uColorA; // deep / shadow side
-  uniform vec3 uColorB; // mid body
-  uniform vec3 uColorC; // bone highlight / rim
-  uniform vec3 uLight;  // key light direction
+  uniform vec3 uColorA; // deep bronze / shadow
+  uniform vec3 uColorB; // warm metal highlight
+  uniform vec3 uColorC; // bone specular / rim
+  uniform vec3 uColorD; // clay accent reflection
 
-  varying float vDisplace;
   varying vec3 vNormal;
   varying vec3 vViewPosition;
+  varying float vDisplace;
+
+  const float PI = 3.14159265359;
 
   void main() {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(vViewPosition);
-    vec3 L = normalize(uLight);
+    vec3 R = reflect(-V, N);
 
-    // Soft wrapped diffuse for a matte ceramic read.
-    float diff = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);
-    diff = pow(diff, 1.35);
+    // Fake studio environment: a bright soft-box overhead, dark floor,
+    // plus a couple of vertical light strips like a gallery reflection.
+    float overhead = smoothstep(-0.1, 0.75, R.y);
+    float floorDark = smoothstep(-0.2, -0.75, R.y);
+    float strips = smoothstep(0.72, 1.0, abs(sin(atan(R.x, R.z) * 2.0)));
 
-    float fresnel = pow(1.0 - abs(dot(V, N)), 3.0);
+    float env = overhead * 0.9 + strips * 0.35;
+    env = clamp(env, 0.0, 1.4);
 
-    float d = smoothstep(-0.28, 0.4, vDisplace);
-    vec3 body = mix(uColorA, uColorB, d);
+    vec3 metal = mix(uColorA, uColorB, env);
+    metal = mix(metal, uColorA * 0.6, floorDark * 0.7);
 
-    vec3 color = body * (0.5 + 0.62 * diff);
+    // Warm clay bounce on one flank for depth.
+    float side = smoothstep(-0.6, 0.4, R.x);
+    metal = mix(metal, mix(metal, uColorD, 0.35), side * 0.4);
 
-    // Bone fresnel rim + faint rose iridescence at grazing angles.
-    vec3 rim = mix(uColorC, vec3(0.98, 0.86, 0.82), 0.4);
-    color = mix(color, rim, fresnel * 0.9);
+    // Bone fresnel rim.
+    float fresnel = pow(1.0 - abs(dot(V, N)), 2.6);
+    vec3 color = mix(metal, uColorC, fresnel * 0.75);
 
-    // Gentle specular sheen.
-    vec3 H = normalize(L + V);
-    float spec = pow(clamp(dot(N, H), 0.0, 1.0), 26.0);
-    color += spec * 0.22 * uColorC;
+    // Tight specular glints from the soft-box.
+    float spec = pow(clamp(overhead, 0.0, 1.0), 8.0);
+    color += spec * 0.3 * uColorC;
 
     gl_FragColor = vec4(color, 1.0);
   }

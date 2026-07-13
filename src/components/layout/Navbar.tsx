@@ -9,13 +9,24 @@ import { cn } from '@/utils/cn';
 import { MobileMenu } from './MobileMenu';
 import { MagneticButton } from '@/components/shared/MagneticButton';
 
-function NavItem({ link, active }: { link: (typeof navLinks)[number]; active: boolean }) {
+function NavItem({
+  link,
+  active,
+  dark,
+}: {
+  link: (typeof navLinks)[number];
+  active: boolean;
+  dark: boolean;
+}) {
   const cursor = useCursorHandlers('hover');
   return (
     <a
       href={link.href}
       {...cursor}
-      className="group relative py-1 text-sm tracking-wide text-espresso/80 transition-colors hover:text-espresso"
+      className={cn(
+        'group relative py-1 text-sm tracking-wide transition-colors',
+        dark ? 'text-bone/70 hover:text-bone' : 'text-espresso/80 hover:text-espresso',
+      )}
     >
       <span className="flex items-center gap-1.5">
         <span
@@ -28,7 +39,8 @@ function NavItem({ link, active }: { link: (typeof navLinks)[number]; active: bo
       </span>
       <span
         className={cn(
-          'absolute -bottom-0.5 left-0 h-px w-full origin-left bg-espresso transition-transform duration-500 ease-norell',
+          'absolute -bottom-0.5 left-0 h-px w-full origin-left transition-transform duration-500 ease-norell',
+          dark ? 'bg-bone' : 'bg-espresso',
           active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100',
         )}
       />
@@ -49,6 +61,9 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Over the dark hero (not yet scrolled) the bar is light-on-dark.
+  const dark = !scrolled;
+
   return (
     <>
       <motion.header
@@ -66,7 +81,10 @@ export function Navbar() {
           <a
             href="#top"
             {...brandCursor}
-            className="font-display text-xl font-medium tracking-tight text-espresso"
+            className={cn(
+              'font-display text-xl font-medium tracking-tight transition-colors',
+              dark ? 'text-bone' : 'text-espresso',
+            )}
           >
             {brand.wordmark}
             <span className="text-clay">.</span>
@@ -74,12 +92,16 @@ export function Navbar() {
 
           <div className="hidden items-center gap-9 md:flex">
             {navLinks.map((link) => (
-              <NavItem key={link.id} link={link} active={active === link.id} />
+              <NavItem key={link.id} link={link} active={active === link.id} dark={dark} />
             ))}
           </div>
 
           <div className="hidden md:block">
-            <MagneticButton href="#contact" variant="outline" strength={0.3}>
+            <MagneticButton
+              href="#contact"
+              variant={dark ? 'outline-light' : 'outline'}
+              strength={0.3}
+            >
               Enquire
             </MagneticButton>
           </div>
@@ -91,8 +113,8 @@ export function Navbar() {
             onClick={() => setMenuOpen(true)}
             className="flex flex-col items-end gap-1.5 md:hidden"
           >
-            <span className="block h-px w-7 bg-espresso" />
-            <span className="block h-px w-5 bg-espresso" />
+            <span className={cn('block h-px w-7 transition-colors', dark ? 'bg-bone' : 'bg-espresso')} />
+            <span className={cn('block h-px w-5 transition-colors', dark ? 'bg-bone' : 'bg-espresso')} />
           </button>
         </nav>
       </motion.header>

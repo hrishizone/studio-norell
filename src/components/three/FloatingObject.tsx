@@ -6,9 +6,9 @@ import * as THREE from 'three';
 import { fragmentShader, vertexShader } from './shaders';
 
 /**
- * The hero sculpture: a shader-displaced icosphere that breathes, rotates
- * slowly and leans gently toward the pointer. Kept smooth + ceramic so it
- * reads as a crafted object floating in space, not a boxed blob.
+ * The hero monolith: a shader-displaced icosphere finished like polished
+ * bronze, floating and slowly turning above the grid so its reflections
+ * drift. Leans subtly toward the pointer.
  */
 export function FloatingObject() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -18,12 +18,12 @@ export function FloatingObject() {
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uAmp: { value: 0.2 },
+      uAmp: { value: 0.17 },
       uMouse: { value: new THREE.Vector2(0, 0) },
-      uColorA: { value: new THREE.Color('#7c4d35') }, // shadow clay
-      uColorB: { value: new THREE.Color('#c99a7d') }, // body clay
-      uColorC: { value: new THREE.Color('#f6efe4') }, // bone rim
-      uLight: { value: new THREE.Vector3(0.45, 0.9, 0.65).normalize() },
+      uColorA: { value: new THREE.Color('#241813') }, // deep bronze shadow
+      uColorB: { value: new THREE.Color('#d8a878') }, // warm metal highlight
+      uColorC: { value: new THREE.Color('#f6efe4') }, // bone specular
+      uColorD: { value: new THREE.Color('#b4795a') }, // clay bounce
     }),
     [],
   );
@@ -36,17 +36,17 @@ export function FloatingObject() {
       materialRef.current.uniforms.uMouse.value.copy(mouse.current);
     }
     if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.08;
+      meshRef.current.rotation.y += delta * 0.1;
       meshRef.current.rotation.x =
-        Math.sin(t * 0.15) * 0.1 + state.pointer.y * 0.1;
-      meshRef.current.rotation.z = Math.cos(t * 0.12) * 0.05;
-      meshRef.current.position.y = Math.sin(t * 0.5) * 0.06;
+        Math.sin(t * 0.15) * 0.08 + state.pointer.y * 0.08;
+      meshRef.current.rotation.z = Math.cos(t * 0.12) * 0.04;
+      meshRef.current.position.y = 0.15 + Math.sin(t * 0.5) * 0.06;
     }
   });
 
   return (
-    <mesh ref={meshRef} scale={1}>
-      <icosahedronGeometry args={[1, 64]} />
+    <mesh ref={meshRef} scale={1.12} position={[0, 0.15, 0]}>
+      <icosahedronGeometry args={[1, 72]} />
       <shaderMaterial
         ref={materialRef}
         vertexShader={vertexShader}

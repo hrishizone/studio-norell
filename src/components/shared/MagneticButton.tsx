@@ -9,7 +9,7 @@ interface MagneticButtonProps {
   children: ReactNode;
   href?: string;
   onClick?: () => void;
-  variant?: 'solid' | 'outline' | 'ghost';
+  variant?: 'solid' | 'outline' | 'ghost' | 'light' | 'outline-light';
   strength?: number;
   className?: string;
   ariaLabel?: string;
@@ -38,6 +38,8 @@ export function MagneticButton({
     solid: 'bg-espresso text-bone hover:text-bone',
     outline: 'border border-espresso/25 text-espresso hover:border-espresso/50',
     ghost: 'text-espresso',
+    light: 'bg-bone text-espresso hover:text-espresso',
+    'outline-light': 'border border-bone/25 text-bone hover:border-bone/50',
   };
 
   const inner = (
