@@ -1,7 +1,16 @@
 'use client';
 
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import {
+  EffectComposer,
+  Bloom,
+  DepthOfField,
+  Vignette,
+  HueSaturation,
+  BrightnessContrast,
+  SMAA,
+} from '@react-three/postprocessing';
 import { Suspense, useRef } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -9,32 +18,55 @@ import { LivingRoom } from './LivingRoom';
 import { StudioEnvironment } from './StudioEnvironment';
 import { Dust } from './Dust';
 import { orbitState } from './orbitState';
+import { heroHotspots } from '@/cms/content';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 
 const BG = '#0b0a09';
-const TARGET: [number, number, number] = [0, 0.62, -0.9];
+const IDLE_TARGET: [number, number, number] = [0, 0.72, -1.0];
+
+interface HeroSceneProps {
+  focusIndex: number | null;
+  onSelect: (index: number) => void;
+}
+
+const tmpPos = new THREE.Vector3();
+const tmpTgt = new THREE.Vector3();
 
 /**
- * Feeds live orientation to the HUD and, when the viewer isn't dragging, eases
- * the camera into a gentle idle sway so the room quietly breathes.
+ * Directs the camera: eases toward a piece's framing when focused, otherwise
+ * gently sways. Also publishes orientation to the HUD.
  */
-function CameraRig({
+function CameraDirector({
   controls,
+  focusIndex,
   reduced,
 }: {
   controls: React.RefObject<OrbitControlsImpl | null>;
+  focusIndex: number | null;
   reduced: boolean;
 }) {
+  const { camera } = useThree();
+
   useFrame((state) => {
     const c = controls.current;
     if (!c) return;
     orbitState.azimuthDeg = THREE.MathUtils.radToDeg(c.getAzimuthalAngle());
     orbitState.polarDeg = THREE.MathUtils.radToDeg(c.getPolarAngle());
 
+    if (focusIndex !== null) {
+      // Drive the camera directly (bypass OrbitControls clamps) for exact framing.
+      const w = heroHotspots[focusIndex];
+      camera.position.lerp(tmpPos.set(...w.camPos), 0.06);
+      c.target.lerp(tmpTgt.set(...w.camTarget), 0.06);
+      camera.lookAt(c.target);
+      return;
+    }
+
     if (!orbitState.dragging && !reduced) {
       const t = state.clock.getElapsedTime();
       const targetAz = Math.sin(t * 0.11) * 0.2;
       c.setAzimuthalAngle(THREE.MathUtils.lerp(c.getAzimuthalAngle(), targetAz, 0.012));
+      c.target.lerp(tmpTgt.set(...IDLE_TARGET), 0.04);
       c.update();
     }
   });
@@ -42,64 +74,65 @@ function CameraRig({
 }
 
 /**
- * The dark "gallery" staging: a warm, lived-in living room lit by a low sun
- * through a side window, with soft shadows, image-based reflections and drifting
- * dust. Drag to explore; it idles with a slow sway.
+ * The dark "gallery" staging: a warm, fully-dressed living room lit by a low sun
+ * through a side window, graded with a cinematic post-processing stack. Drag to
+ * explore; click a piece to focus it; it idles with a slow sway.
  */
-export function HeroScene() {
+export function HeroScene({ focusIndex, onSelect }: HeroSceneProps) {
   const reduced = usePrefersReducedMotion();
   const controls = useRef<OrbitControlsImpl | null>(null);
   const isTouch =
     typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const canOrbit = focusIndex === null && !isTouch;
 
   return (
     <Canvas
       shadows
-      dpr={[1, 1.75]}
-      camera={{ position: [0, 1.05, 6.1], fov: 42 }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      dpr={[1, 2]}
+      camera={{ position: [0, 0.85, 6.3], fov: 42 }}
+      gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       className="!absolute inset-0"
       frameloop={reduced ? 'demand' : 'always'}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.05;
+        gl.toneMappingExposure = 0.92;
       }}
     >
-      <fog attach="fog" args={[BG, 9, 22]} />
-      <ambientLight intensity={0.28} />
+      <fog attach="fog" args={[BG, 11, 26]} />
+      <ambientLight intensity={0.35} />
       {/* low warm sun through the window */}
       <directionalLight
         position={[-6, 5, 2]}
-        intensity={2.6}
-        color="#ffd9a8"
+        intensity={1.9}
+        color="#ffce9c"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0004}
       >
-        <orthographicCamera attach="shadow-camera" args={[-8, 8, 8, -8, 0.1, 30]} />
+        <orthographicCamera attach="shadow-camera" args={[-9, 9, 9, -9, 0.1, 34]} />
       </directionalLight>
-      <directionalLight position={[5, 4, 4]} intensity={0.4} color="#9fb0c0" />
+      <directionalLight position={[5, 4, 4]} intensity={0.3} color="#9fb0c0" />
 
       <Suspense fallback={null}>
         <StudioEnvironment />
-        <LivingRoom />
+        <LivingRoom focusIndex={focusIndex} onSelect={onSelect} />
         <Dust />
       </Suspense>
 
       <OrbitControls
         ref={controls}
         makeDefault
-        target={TARGET}
-        enabled={!isTouch}
+        target={IDLE_TARGET}
+        enabled={canOrbit}
         enablePan={false}
         enableZoom={false}
         enableDamping
         dampingFactor={0.08}
         rotateSpeed={0.6}
-        minPolarAngle={Math.PI * 0.32}
-        maxPolarAngle={Math.PI * 0.52}
-        minAzimuthAngle={-0.5}
-        maxAzimuthAngle={0.5}
+        minPolarAngle={Math.PI * 0.34}
+        maxPolarAngle={Math.PI * 0.5}
+        minAzimuthAngle={-0.9}
+        maxAzimuthAngle={0.9}
         onStart={() => {
           orbitState.dragging = true;
         }}
@@ -107,7 +140,20 @@ export function HeroScene() {
           orbitState.dragging = false;
         }}
       />
-      <CameraRig controls={controls} reduced={reduced} />
+      <CameraDirector controls={controls} focusIndex={focusIndex} reduced={reduced} />
+
+      <EffectComposer multisampling={4}>
+        <DepthOfField
+          focusDistance={0.012}
+          focalLength={0.028}
+          bokehScale={focusIndex !== null ? 3.2 : 1}
+        />
+        <Bloom intensity={0.42} luminanceThreshold={0.9} luminanceSmoothing={0.2} mipmapBlur />
+        <HueSaturation saturation={0.05} />
+        <BrightnessContrast brightness={-0.03} contrast={0.12} />
+        <Vignette eskil={false} offset={0.26} darkness={0.78} />
+        <SMAA />
+      </EffectComposer>
     </Canvas>
   );
 }

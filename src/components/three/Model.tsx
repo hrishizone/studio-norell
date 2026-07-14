@@ -12,6 +12,10 @@ interface ModelProps {
   /** recentre on X/Z and sit the base at local y = 0 */
   grounded?: boolean;
   envIntensity?: number;
+  /** retint every material toward this colour (for palette harmony) */
+  colorOverride?: string;
+  /** normalise the model to this height (metres) regardless of source scale */
+  fitHeight?: number;
 }
 
 /**
@@ -25,11 +29,19 @@ export function Model({
   scale = 1,
   grounded = true,
   envIntensity = 1,
+  colorOverride,
+  fitHeight,
 }: ModelProps) {
   const { scene } = useGLTF(url);
   const cloned = useMemo(() => scene.clone(true), [scene]);
 
   useLayoutEffect(() => {
+    if (fitHeight) {
+      const raw = new THREE.Box3().setFromObject(cloned);
+      const size = raw.getSize(new THREE.Vector3());
+      const s = fitHeight / (size.y || 1);
+      cloned.scale.multiplyScalar(s);
+    }
     if (grounded) {
       const box = new THREE.Box3().setFromObject(cloned);
       const center = box.getCenter(new THREE.Vector3());
@@ -44,9 +56,15 @@ export function Model({
         mesh.receiveShadow = true;
         const mat = mesh.material as THREE.MeshStandardMaterial;
         if (mat && 'envMapIntensity' in mat) mat.envMapIntensity = envIntensity;
+        if (mat && colorOverride && mat.color) {
+          mat.color.set(colorOverride);
+          if ('sheenColor' in mat && (mat as THREE.MeshPhysicalMaterial).sheenColor) {
+            (mat as THREE.MeshPhysicalMaterial).sheenColor.set(colorOverride);
+          }
+        }
       }
     });
-  }, [cloned, grounded, envIntensity]);
+  }, [cloned, grounded, envIntensity, colorOverride, fitHeight]);
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
@@ -58,3 +76,6 @@ export function Model({
 useGLTF.preload('/models/GlamVelvetSofa.glb');
 useGLTF.preload('/models/chair.glb');
 useGLTF.preload('/models/IridescentDishWithOlives.glb');
+useGLTF.preload('/models/BoomBox.glb');
+useGLTF.preload('/models/AntiqueCamera.glb');
+useGLTF.preload('/models/Duck.glb');

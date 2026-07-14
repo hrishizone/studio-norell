@@ -75,14 +75,18 @@ in `next.config.mjs`).
 
 ## ✦ Credits
 
-- Hero is an interactive **living-room vignette**. Furniture models —
-  **SheenChair**, **GlamVelvetSofa**, **IridescentDishWithOlives** — are from the
+- Hero is an interactive, **narrated living-room**. Furniture/decor models —
+  **SheenChair**, **GlamVelvetSofa**, **IridescentDishWithOlives**, **BoomBox**,
+  **AntiqueCamera**, **Duck** — are from the
   [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets)
   (CC0 / public domain), vendored under `public/models/`. The room shell, coffee
-  table, floor lamp, plant, art and dust are procedural.
-- Drag to orbit the room; tap a piece to open its spec card. The camera idles
-  with a gentle sway and the lamp quietly breathes.
-- Studio lighting uses three.js `RoomEnvironment` (no HDRI asset shipped).
+  table, bookcase, TV/console, floor + table lamps, pendant, plants, curtains,
+  mirror, art, pillows and dust are all procedural.
+- **Take the tour** for a guided, auto-advancing story — the camera pushes in
+  on each piece, chapter by chapter, with narrative copy and a progress rail.
+  Or drag to orbit and click any piece to focus it.
+- Cinematic **post-processing** (bloom, depth of field, vignette, colour grade)
+  over a warm golden-hour key light; reflections via three.js `RoomEnvironment`.
 - Imagery from Unsplash via `next/image`.
 
 ---

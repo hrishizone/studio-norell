@@ -1,15 +1,16 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRef } from 'react';
-import { FiArrowDownRight } from 'react-icons/fi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FiArrowDownRight, FiPlay } from 'react-icons/fi';
 import { gsap, registerGsap, ScrollTrigger } from '@/animations/gsap';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { brand } from '@/cms/content';
+import { brand, heroHotspots } from '@/cms/content';
 import { MagneticButton } from '@/components/shared/MagneticButton';
 import { ScrollIndicator } from '@/components/shared/ScrollIndicator';
 import { AxisGizmo } from '@/components/shared/AxisGizmo';
 import { OrbitReadout } from '@/components/shared/OrbitReadout';
+import { StoryPanel } from '@/components/shared/StoryPanel';
 import { useCursorHandlers } from '@/providers/CursorProvider';
 
 // WebGL is client-only; skip SSR to avoid hydration + window access issues.
@@ -28,6 +29,50 @@ export function Hero() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
   const dragCursor = useCursorHandlers('drag', 'Drag');
+
+  // Guided-tour / focus state.
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [touring, setTouring] = useState(false);
+  const last = heroHotspots.length - 1;
+
+  const select = useCallback((i: number) => {
+    setTouring(false);
+    setFocusIndex(i);
+  }, []);
+  const close = useCallback(() => {
+    setTouring(false);
+    setFocusIndex(null);
+  }, []);
+  const prev = useCallback(() => setFocusIndex((i) => (i === null ? 0 : Math.max(0, i - 1))), []);
+  const next = useCallback(() => {
+    setFocusIndex((i) => {
+      if (i === null) return 0;
+      if (i >= last) {
+        setTouring(false);
+        return null;
+      }
+      return i + 1;
+    });
+  }, [last]);
+  const beginTour = useCallback(() => {
+    setTouring(true);
+    setFocusIndex(0);
+  }, []);
+
+  // Auto-advance while touring.
+  useEffect(() => {
+    if (!touring || focusIndex === null) return;
+    const id = window.setTimeout(() => {
+      setFocusIndex((i) => {
+        if (i === null || i >= last) {
+          setTouring(false);
+          return i === null ? null : null;
+        }
+        return i + 1;
+      });
+    }, 6500);
+    return () => window.clearTimeout(id);
+  }, [touring, focusIndex, last]);
 
   useIsomorphicLayoutEffect(() => {
     registerGsap();
@@ -94,20 +139,22 @@ export function Hero() {
       ref={rootRef}
       className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#0b0a09] text-bone"
     >
-      {/* WebGL studio: infinite grid + interactive chair (drag to orbit) */}
+      {/* WebGL studio: the living-room vignette (drag to orbit, click to focus) */}
       <div
         ref={sceneRef}
         {...dragCursor}
         className="absolute inset-0 z-0"
       >
-        <HeroScene />
+        <HeroScene focusIndex={focusIndex} onSelect={select} />
       </div>
 
       {/* Giant outline wordmark behind the object */}
       <div
         ref={ghostRef}
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center"
+        className={`pointer-events-none absolute inset-0 z-[1] flex items-center justify-center transition-opacity duration-700 ${
+          focusIndex !== null ? 'opacity-0' : 'opacity-100'
+        }`}
       >
         <span className="select-none whitespace-nowrap font-display text-[23vw] font-light leading-none text-transparent [-webkit-text-stroke:1px_rgba(244,241,234,0.14)]">
           monuments
@@ -135,8 +182,12 @@ export function Hero() {
       </div>
 
       {/* Content — transparent to pointer so the canvas underneath can be dragged;
-          interactive children opt back in with pointer-events-auto. */}
-      <div className="pointer-events-none relative z-[4] mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 pb-8 pt-28 md:px-12 md:pb-12 md:pt-32">
+          interactive children opt back in with pointer-events-auto. Dims while focused. */}
+      <div
+        className={`pointer-events-none relative z-[4] mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 pb-8 pt-28 transition-opacity duration-500 md:px-12 md:pb-12 md:pt-32 ${
+          focusIndex !== null ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         {/* Top HUD row */}
         <div
           data-hero-fade
@@ -177,12 +228,17 @@ export function Hero() {
               data-hero-fade
               className="pointer-events-auto mt-8 flex flex-wrap items-center gap-4"
             >
-              <MagneticButton href="#collections" variant="light">
+              <button
+                type="button"
+                onClick={beginTour}
+                className="group inline-flex items-center gap-3 rounded-full bg-bone px-7 py-4 text-sm font-medium text-espresso transition-transform duration-500 ease-norell hover:scale-[1.03]"
+              >
+                <FiPlay className="h-3.5 w-3.5 fill-espresso" />
+                Take the tour
+              </button>
+              <MagneticButton href="#collections" variant="outline-light">
                 Explore collections
                 <FiArrowDownRight className="h-4 w-4" />
-              </MagneticButton>
-              <MagneticButton href="#atelier" variant="outline-light">
-                The atelier
               </MagneticButton>
             </div>
 
@@ -191,7 +247,7 @@ export function Hero() {
               className="mt-6 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-bone/40"
             >
               <span className="inline-block h-1 w-1 animate-ping rounded-full bg-clay" />
-              Drag to explore the room · tap a piece to inspect
+              Drag to explore · tap a piece · or take the guided tour
             </p>
           </div>
 
@@ -218,6 +274,17 @@ export function Hero() {
           </span>
         </div>
       </div>
+
+      {/* Narrative panel (guided tour + focus) */}
+      <StoryPanel
+        items={heroHotspots}
+        index={focusIndex}
+        touring={touring}
+        onPrev={prev}
+        onNext={next}
+        onClose={close}
+        onJump={select}
+      />
     </section>
   );
 }

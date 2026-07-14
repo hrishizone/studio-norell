@@ -48,6 +48,11 @@ export interface HeroHotspot {
   title: string;
   detail: string;
   spec: string;
+  /** camera framing when this piece is focused */
+  camPos: [number, number, number];
+  camTarget: [number, number, number];
+  /** narrative line for the guided tour */
+  story: string;
 }
 
 export interface SectionProps {
