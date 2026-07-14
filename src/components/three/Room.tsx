@@ -293,7 +293,6 @@ export function Room() {
           distance={7}
           decay={2}
           color="#ffbf80"
-          castShadow
         />
       </group>
 
@@ -314,7 +313,6 @@ export function Room() {
             roughness={0.4}
           />
         </mesh>
-        <pointLight position={[0, 1.4, 0]} intensity={2.4} distance={4} decay={2} color="#ffcf9a" />
       </group>
 
       {/* ---- TV / media console (back wall, right) ---- */}
@@ -340,7 +338,6 @@ export function Room() {
             />
           </mesh>
         </group>
-        <pointLight position={[0, 1.35, 0.5]} intensity={1.2} distance={3.5} decay={2} color="#6aa6c8" />
       </group>
 
       {/* ---- Bookcase (back wall, left) ---- */}

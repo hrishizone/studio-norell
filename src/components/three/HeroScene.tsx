@@ -11,7 +11,7 @@ import {
   BrightnessContrast,
   SMAA,
 } from '@react-three/postprocessing';
-import { Suspense, useMemo, useRef } from 'react';
+import { Suspense, useMemo, useRef, type ReactElement } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { LivingRoom } from './LivingRoom';
@@ -31,6 +31,26 @@ interface HeroSceneProps {
 
 const tmpPos = new THREE.Vector3();
 const tmpTgt = new THREE.Vector3();
+
+/**
+ * The scene is static, so the sun's shadow map only needs to render a few times
+ * (until the async models have popped in) and can then be frozen — a big saving
+ * versus re-rendering it every frame on a fill-rate-bound GPU.
+ */
+function FreezeShadows() {
+  const gl = useThree((s) => s.gl);
+  const n = useRef(0);
+  useFrame(() => {
+    n.current += 1;
+    if (n.current < 150) {
+      gl.shadowMap.needsUpdate = true;
+    } else if (n.current === 150) {
+      gl.shadowMap.autoUpdate = false;
+      gl.shadowMap.needsUpdate = true;
+    }
+  });
+  return null;
+}
 
 /**
  * Directs the camera: eases toward a piece's framing when focused, otherwise
@@ -92,10 +112,25 @@ export function HeroScene({ focusIndex, onSelect }: HeroSceneProps) {
     return new THREE.Vector3(p[0], p[1], p[2]);
   }, [focusIndex]);
 
+  // Build the post stack as an array — DoF (the heaviest pass) is only added
+  // while inspecting a piece; idle browsing runs the cheap grade + bloom only.
+  const effects: ReactElement[] = [
+    <Bloom key="bloom" intensity={0.4} luminanceThreshold={0.9} luminanceSmoothing={0.2} mipmapBlur />,
+    <HueSaturation key="hue" saturation={0.05} />,
+    <BrightnessContrast key="bc" brightness={-0.03} contrast={0.12} />,
+    <Vignette key="vig" eskil={false} offset={0.26} darkness={0.78} />,
+    <SMAA key="smaa" />,
+  ];
+  if (focusIndex !== null) {
+    effects.unshift(
+      <DepthOfField key="dof" target={dofTarget} focalLength={0.02} bokehScale={2.2} />,
+    );
+  }
+
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
+      shadows="soft"
+      dpr={[1, 1.25]}
       camera={{ position: [0, 0.85, 6.3], fov: 42 }}
       gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       className="!absolute inset-0"
@@ -113,10 +148,10 @@ export function HeroScene({ focusIndex, onSelect }: HeroSceneProps) {
         intensity={1.9}
         color="#ffce9c"
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
+        shadow-mapSize={[1024, 1024]}
+        shadow-bias={-0.0005}
       >
-        <orthographicCamera attach="shadow-camera" args={[-9, 9, 9, -9, 0.1, 34]} />
+        <orthographicCamera attach="shadow-camera" args={[-7, 7, 7, -7, 0.1, 30]} />
       </directionalLight>
       <directionalLight position={[5, 4, 4]} intensity={0.3} color="#9fb0c0" />
 
@@ -148,18 +183,10 @@ export function HeroScene({ focusIndex, onSelect }: HeroSceneProps) {
         }}
       />
       <CameraDirector controls={controls} focusIndex={focusIndex} reduced={reduced} />
+      <FreezeShadows />
 
-      <EffectComposer multisampling={4}>
-        <DepthOfField
-          target={dofTarget}
-          focalLength={0.018}
-          bokehScale={focusIndex !== null ? 2 : 0.8}
-        />
-        <Bloom intensity={0.42} luminanceThreshold={0.9} luminanceSmoothing={0.2} mipmapBlur />
-        <HueSaturation saturation={0.05} />
-        <BrightnessContrast brightness={-0.03} contrast={0.12} />
-        <Vignette eskil={false} offset={0.26} darkness={0.78} />
-        <SMAA />
+      <EffectComposer multisampling={0} enableNormalPass={false}>
+        {effects}
       </EffectComposer>
     </Canvas>
   );

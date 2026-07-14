@@ -45,7 +45,8 @@ export function Model({
   colorOverride,
   fitHeight,
 }: ModelProps) {
-  const { scene } = useGLTF(url);
+  // `true` → decode Draco-compressed geometry (models are Draco + WebP).
+  const { scene } = useGLTF(url, true);
   const cloned = useMemo(() => scene.clone(true), [scene]);
   const maxAniso = useThree((s) => s.gl.capabilities.getMaxAnisotropy());
 
@@ -99,9 +100,9 @@ export function Model({
   );
 }
 
-useGLTF.preload('/models/GlamVelvetSofa.glb');
-useGLTF.preload('/models/chair.glb');
-useGLTF.preload('/models/IridescentDishWithOlives.glb');
-useGLTF.preload('/models/BoomBox.glb');
-useGLTF.preload('/models/AntiqueCamera.glb');
-useGLTF.preload('/models/Duck.glb');
+useGLTF.preload('/models/GlamVelvetSofa.glb', true);
+useGLTF.preload('/models/chair.glb', true);
+useGLTF.preload('/models/IridescentDishWithOlives.glb', true);
+useGLTF.preload('/models/BoomBox.glb', true);
+useGLTF.preload('/models/AntiqueCamera.glb', true);
+useGLTF.preload('/models/Duck.glb', true);
