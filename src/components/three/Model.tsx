@@ -2,7 +2,20 @@
 
 import { useLayoutEffect, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+
+const MAP_KEYS = [
+  'map',
+  'normalMap',
+  'roughnessMap',
+  'metalnessMap',
+  'aoMap',
+  'emissiveMap',
+  'sheenColorMap',
+  'sheenRoughnessMap',
+  'clearcoatMap',
+] as const;
 
 interface ModelProps {
   url: string;
@@ -34,6 +47,7 @@ export function Model({
 }: ModelProps) {
   const { scene } = useGLTF(url);
   const cloned = useMemo(() => scene.clone(true), [scene]);
+  const maxAniso = useThree((s) => s.gl.capabilities.getMaxAnisotropy());
 
   useLayoutEffect(() => {
     if (fitHeight) {
@@ -56,6 +70,18 @@ export function Model({
         mesh.receiveShadow = true;
         const mat = mesh.material as THREE.MeshStandardMaterial;
         if (mat && 'envMapIntensity' in mat) mat.envMapIntensity = envIntensity;
+        // Crisp textures at grazing angles: max anisotropy + trilinear mips.
+        if (mat) {
+          for (const key of MAP_KEYS) {
+            const tex = (mat as unknown as Record<string, THREE.Texture | null>)[key];
+            if (tex && tex.isTexture) {
+              tex.anisotropy = maxAniso;
+              tex.minFilter = THREE.LinearMipmapLinearFilter;
+              tex.generateMipmaps = true;
+              tex.needsUpdate = true;
+            }
+          }
+        }
         if (mat && colorOverride && mat.color) {
           mat.color.set(colorOverride);
           if ('sheenColor' in mat && (mat as THREE.MeshPhysicalMaterial).sheenColor) {
@@ -64,7 +90,7 @@ export function Model({
         }
       }
     });
-  }, [cloned, grounded, envIntensity, colorOverride, fitHeight]);
+  }, [cloned, grounded, envIntensity, colorOverride, fitHeight, maxAniso]);
 
   return (
     <group position={position} rotation={rotation} scale={scale}>

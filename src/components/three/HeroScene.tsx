@@ -11,7 +11,7 @@ import {
   BrightnessContrast,
   SMAA,
 } from '@react-three/postprocessing';
-import { Suspense, useRef } from 'react';
+import { Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { LivingRoom } from './LivingRoom';
@@ -85,6 +85,13 @@ export function HeroScene({ focusIndex, onSelect }: HeroSceneProps) {
     typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const canOrbit = focusIndex === null && !isTouch;
 
+  // Keep depth-of-field focused on whatever we're looking at so the focused
+  // piece stays razor sharp — only the background falls off.
+  const dofTarget = useMemo(() => {
+    const p = focusIndex !== null ? heroHotspots[focusIndex].camTarget : IDLE_TARGET;
+    return new THREE.Vector3(p[0], p[1], p[2]);
+  }, [focusIndex]);
+
   return (
     <Canvas
       shadows
@@ -144,9 +151,9 @@ export function HeroScene({ focusIndex, onSelect }: HeroSceneProps) {
 
       <EffectComposer multisampling={4}>
         <DepthOfField
-          focusDistance={0.012}
-          focalLength={0.028}
-          bokehScale={focusIndex !== null ? 3.2 : 1}
+          target={dofTarget}
+          focalLength={0.018}
+          bokehScale={focusIndex !== null ? 2 : 0.8}
         />
         <Bloom intensity={0.42} luminanceThreshold={0.9} luminanceSmoothing={0.2} mipmapBlur />
         <HueSaturation saturation={0.05} />
